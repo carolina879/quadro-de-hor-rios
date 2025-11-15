@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Professor</title>
+<style>
+  body { font-family: 'Segoe UI'; background: #f0f4f8; margin: 0; }
+  header { background: #1A237E; color: white; padding: 20px; text-align: center; position: relative; }
+  #nome-professor { cursor: pointer; text-decoration: underline; }
+  .logout-btn { position: absolute; top: 20px; right: 20px; background: #e53e3e; border: none; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+  main { max-width: 1000px; margin: 20px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+  h2 { color: #1A237E; border-bottom: 2px solid #E8EAF6; padding-bottom: 5px; }
+  .disciplina { background: #3949AB; color: white; margin: 5px 0; padding: 10px; border-radius: 8px; font-weight: 500; }
+  .sem-aviso { color: gray; font-style: italic; }
+  textarea { width: 100%; margin-top: 10px; border-radius: 8px; padding: 10px; resize: none; border: 1px solid #ccc; }
+  button { background: #1A237E; color: white; padding: 10px 15px; border: none; border-radius: 8px; margin-top: 10px; cursor: pointer; }
+  button:hover { background: #3949AB; }
+  .grade { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  .grade th, .grade td { border: 1px solid #ccc; text-align: center; padding: 8px; }
+  .grade th { background: #1A237E; color: white; }
+  .ocupado { background: #3949AB; color: white; border-radius: 5px; padding: 4px; }
+  .aviso { background: #E8EAF6; padding: 10px; margin-top: 10px; border-radius: 6px; }
+
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+  .modal-content { background: white; padding: 30px; border-radius: 10px; width: 350px; text-align: center; }
+  #foto-perfil { width: 80px; height: 80px; background: #1A237E; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 10px; cursor: pointer; }
+  #fechar-perfil { background: #e53e3e; margin-top: 15px; }
+  #upload-foto { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bem-vindo, <span id="nome-professor">Professor</span></h1>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</header>
+
+<input type="file" id="upload-foto" accept="image/*">
+
+<div class="modal" id="modal-perfil">
+  <div class="modal-content">
+    <div id="foto-perfil">👤</div>
+    <h2 id="nome-perfil"></h2>
+    <p><strong>Número de Registro:</strong> <span id="usuario-perfil"></span></p>
+    <p><strong>Função:</strong> Professor</p>
+    <button id="fechar-perfil">Fechar</button>
+  </div>
+</div>
+
+<main>
+  <section>
+    <h2>Minhas Disciplinas</h2>
+    <div id="lista-disciplinas"></div>
+  </section>
+
+  <section>
+    <h2>Grade de Horários</h2>
+    <div id="grade-container"></div>
+  </section>
+
+  <section>
+    <h2>Enviar Aviso</h2>
+    <textarea id="texto-aviso" placeholder="Digite aqui seu aviso para alunos, coordenador e professores..."></textarea>
+    <button onclick="enviarAviso()">Enviar Aviso</button>
+  </section>
+
+  <section>
+    <h2>Avisos Recentes</h2>
+    <div id="lista-avisos"></div>
+  </section>
+</main>
+
+<script>
+const usuario = JSON.parse(sessionStorage.getItem('usuarioLogado'));
+if (!usuario || usuario.tipo !== 'professor') { window.location.href = 'login.html'; }
+
+const nomeProfessor = document.getElementById('nome-professor');
+const modal = document.getElementById('modal-perfil');
+const fotoPerfil = document.getElementById('foto-perfil');
+const uploadFoto = document.getElementById('upload-foto');
+
+nomeProfessor.textContent = usuario.nome || "Professor";
+
+nomeProfessor.addEventListener('click', () => {
+  modal.style.display = 'flex';
+  document.getElementById('nome-perfil').textContent = usuario.nome;
+  document.getElementById('usuario-perfil').textContent = usuario.login;
+  atualizarFotoPerfil();
+});
+
+document.getElementById('fechar-perfil').addEventListener('click', ()=>{ modal.style.display='none'; });
+
+
+fotoPerfil.addEventListener('click', () => { uploadFoto.click(); });
+
+uploadFoto.addEventListener('change', function(){
+  const file = this.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const tamanho = 80;
+        canvas.width = tamanho;
+        canvas.height = tamanho;
+        const ctx = canvas.getContext('2d');
+        const menor = Math.min(img.width, img.height);
+        const sx = (img.width - menor) / 2;
+        const sy = (img.height - menor) / 2;
+        ctx.drawImage(img, sx, sy, menor, menor, 0, 0, tamanho, tamanho);
+        const dataUrl = canvas.toDataURL('image/png');
+        localStorage.setItem(`foto_${usuario.login}`, dataUrl);
+        atualizarFotoPerfil();
+      }
+    }
+    reader.readAsDataURL(file);
+  }
+});
+
+function atualizarFotoPerfil() {
+  const foto = localStorage.getItem(`foto_${usuario.login}`);
+  if(foto) {
+    fotoPerfil.style.backgroundImage = `url(${foto})`;
+    fotoPerfil.style.backgroundSize = 'cover';
+    fotoPerfil.style.backgroundPosition = 'center';
+    fotoPerfil.textContent = '';
+  } else {
+    fotoPerfil.style.backgroundImage = '';
+    fotoPerfil.textContent = '👤'; 
+  }
+}
+
+
+const disciplinasHorario = [
+  {nome:"Introdução à ADS",dia:"Seg",horaInicio:"07:00",horaFim:"08:40"},
+  {nome:"Lógica de Programação",dia:"Ter",horaInicio:"07:00",horaFim:"08:40"},
+  {nome:"Fundamentos de Computação",dia:"Qua",horaInicio:"07:00",horaFim:"08:40"},
+  {nome:"Matemática Aplicada",dia:"Qui",horaInicio:"07:00",horaFim:"08:40"},
+  {nome:"Comunicação e Expressão",dia:"Sex",horaInicio:"07:00",horaFim:"08:40"},
+  {nome:"Programação Estruturada",dia:"Seg",horaInicio:"08:50",horaFim:"10:30"},
+  {nome:"Banco de Dados I",dia:"Ter",horaInicio:"08:50",horaFim:"10:30"},
+  {nome:"Engenharia de Software I",dia:"Qua",horaInicio:"08:50",horaFim:"10:30"},
+  {nome:"Sistemas Operacionais",dia:"Qui",horaInicio:"08:50",horaFim:"10:30"},
+  {nome:"Arquitetura de Computadores",dia:"Sex",horaInicio:"08:50",horaFim:"10:30"},
+  {nome:"Programação Orientada a Objetos",dia:"Seg",horaInicio:"18:30",horaFim:"20:10"},
+  {nome:"Banco de Dados II",dia:"Ter",horaInicio:"18:30",horaFim:"20:10"},
+  {nome:"Estrutura de Dados",dia:"Qua",horaInicio:"18:30",horaFim:"20:10"},
+  {nome:"Engenharia de Software II",dia:"Qui",horaInicio:"18:30",horaFim:"20:10"},
+  {nome:"Redes de Computadores",dia:"Sex",horaInicio:"18:30",horaFim:"20:10"}
+];
+
+function carregarDisciplinas() {
+  const alocacoes = JSON.parse(localStorage.getItem('alocacoes')) || [];
+  const minhas = alocacoes.filter(a => a.professores?.includes(usuario.nome));
+
+  const lista = document.getElementById('lista-disciplinas');
+  const gradeContainer = document.getElementById('grade-container');
+
+  if (minhas.length === 0) {
+    lista.innerHTML = '<p class="sem-aviso">Você ainda não possui disciplinas alocadas.</p>';
+    gradeContainer.innerHTML = '<p class="sem-aviso">Nenhuma disciplina para exibir na grade.</p>';
+    return;
+  }
+
+  lista.innerHTML = minhas.map(d => `<div class="disciplina">${d.disciplina}</div>`).join('');
+
+  const dias = ["Seg", "Ter", "Qua", "Qui", "Sex"];
+  const horarios = ["07:00-08:40","08:50-10:30","18:30-20:10","20:20-22:00"];
+  let tabela = `<table class="grade"><tr><th>Horário</th>${dias.map(d=>`<th>${d}</th>`).join('')}</tr>`;
+  horarios.forEach(h => {
+    tabela += `<tr><td><strong>${h}</strong></td>`;
+    dias.forEach(dia => {
+      const materia = minhas.find(m => {
+        const info = disciplinasHorario.find(d => d.nome === m.disciplina);
+        return info && info.dia === dia && `${info.horaInicio}-${info.horaFim}` === h;
+      });
+      tabela += `<td>${materia ? `<div class='ocupado'>${materia.disciplina}</div>` : ""}</td>`;
+    });
+    tabela += "</tr>";
+  });
+  tabela += "</table>";
+  gradeContainer.innerHTML = tabela;
+}
+
+function enviarAviso() {
+  const texto = document.getElementById('texto-aviso').value.trim();
+  if (!texto) { alert("Digite um aviso antes de enviar!"); return; }
+  const avisos = JSON.parse(localStorage.getItem('avisos')) || [];
+  avisos.push({autor: usuario.nome, texto, data: new Date().toLocaleString('pt-BR')});
+  localStorage.setItem('avisos', JSON.stringify(avisos));
+  document.getElementById('texto-aviso').value = '';
+  carregarAvisos();
+  alert("Aviso enviado com sucesso!");
+}
+
+function carregarAvisos() {
+  const avisos = JSON.parse(localStorage.getItem('avisos')) || [];
+  const lista = document.getElementById('lista-avisos');
+  if (avisos.length === 0) lista.innerHTML = '<p class="sem-aviso">Nenhum aviso no momento.</p>';
+  else lista.innerHTML = avisos.slice().reverse().map(a => `
+    <div class="aviso">
+      <strong>${a.autor}</strong>: ${a.texto}<br>
+      <small>${a.data}</small>
+    </div>`).join('');
+}
+
+function logout() {
+  sessionStorage.removeItem('usuarioLogado');
+  window.location.href = 'login.html';
+}
+
+carregarDisciplinas();
+carregarAvisos();
+atualizarFotoPerfil();
+</script>
+
+</body>
+</html>

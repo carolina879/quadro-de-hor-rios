@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Painel do Aluno — Minha Grade (Aluno adiciona, sem professor na grade)</title>
+<style>
+:root{
+  --cor-primaria:#495057;
+  --fundo:#f4f4f9;
+  --azul-bebe:#90C3FF;
+  --azul-bebe-sec:#B3D9FF;
+  --alerta:#C93D3E;
+  --sombra:0 6px 18px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box}
+body{font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;background:var(--fundo);margin:0;color:#222}
+header{background:var(--cor-primaria);color:#fff;padding:18px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sombra)}
+header h1{margin:0;font-size:1.2rem}
+.header-right{display:flex;align-items:center;gap:12px}
+#perfil-click{display:flex;align-items:center;gap:10px;cursor:pointer}
+#foto-header{width:44px;height:44px;background:#3949AB;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;overflow:hidden}
+#foto-header img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#nome-text{font-weight:700}
+#btn-logout{background:#fff;color:var(--cor-primaria);border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+
+main{max-width:1200px;margin:26px auto;padding:18px}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:var(--sombra);margin-bottom:20px}
+h2{margin:0 0 12px 0;color:var(--cor-primaria);font-size:1.05rem;border-bottom:2px solid #e9ecef;padding-bottom:8px}
+
+
+.form-group{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.form-control{flex:1;display:flex;flex-direction:column}
+.form-control label{font-weight:700;margin-bottom:6px;color:#444}
+select,button,input{padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff}
+#btn-adicionar{background:var(--azul-bebe);border:none;color:#fff;font-weight:800;cursor:pointer}
+
+
+#painel-controle{display:flex;gap:12px;align-items:center;padding:12px;border-radius:8px;background:#f1f5f9;margin:12px 0}
+.btn-acao{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+#btn-exportar{background:var(--azul-bebe-sec);color:#fff}
+#btn-limpar{background:#fff;border:2px solid var(--alerta);color:var(--alerta)}
+
+
+#legenda-periodos{display:flex;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:2px dashed #eef2f7;border-bottom:2px dashed #eef2f7}
+.legenda-item{display:flex;align-items:center;gap:8px;color:#495057;font-weight:600}
+.legenda-cor{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,0.06)}
+.periodo-1{background:#38a169}.periodo-2{background:#d69e2e}.periodo-3{background:#4299e1}.periodo-4{background:#805ad5}.periodo-5{background:#e53e3e}
+
+
+#calendario-grade{background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sombra)}
+.calendario-header{display:grid;grid-template-columns:60px repeat(5,1fr);border-bottom:2px solid #ddd;background:#eef2ff;font-weight:700}
+.calendario-header>div{text-align:center;padding:12px 5px;border-right:1px solid #dee2e6}
+.calendario-header>div:last-child{border-right:none}
+.calendario-body{display:grid;grid-template-columns:60px repeat(5,1fr);grid-template-rows:repeat(16,40px);position:relative}
+.time-label{grid-column:1;padding-right:8px;text-align:right;color:#6c757d;padding-top:6px;border-right:1px solid #eee;pointer-events:none;background:#fafafa}
+.grade-line{grid-column:2 / span 5;border-bottom:1px dashed #e9ecef;pointer-events:none;height:40px;}
+
+#grade-container{position:absolute;left:60px;top:0;right:0;bottom:0}
+
+
+.disciplina-bloco{position:absolute;padding:6px 8px;border-radius:8px;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.12);cursor:default;font-weight:700;overflow:hidden;transition:transform .12s}
+.disciplina-bloco small{display:block;font-weight:600;font-size:.85rem}
+.disciplina-bloco .meta{display:block;font-weight:600;font-size:.8rem;color:rgba(255,255,255,0.9)}
+.disciplina-bloco:hover{transform:translateY(-4px)}
+
+
+.disciplina-bloco .remove-btn{
+  position:absolute; right:6px; top:6px; width:22px; height:22px; border-radius:50%;
+  background:rgba(0,0,0,0.18); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-weight:700; line-height:1; z-index:20;
+}
+.disciplina-bloco .remove-btn:hover{background:rgba(0,0,0,0.28);}
+
+
+#modal-perfil{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);justify-content:center;align-items:center;z-index:9999}
+.modal-content{background:#fff;border-radius:12px;padding:20px;width:360px;position:relative;text-align:center}
+.modal-content button.close{position:absolute;top:8px;right:10px;border:none;background:none;font-size:20px;cursor:pointer}
+#foto-perfil{width:96px;height:96px;border-radius:50%;background:#3949AB;color:#fff;font-size:36px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;cursor:pointer;overflow:hidden}
+#foto-perfil img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+input[type="file"]{display:none}
+
+
+.aviso-item{background:#E8EAF6;padding:10px;margin-top:10px;border-radius:8px}
+footer{text-align:center;padding:10px 0;color:#6c757d;margin-top:12px}
+
+@media (max-width:900px){
+  .form-group{flex-direction:column}
+  .calendario-header{font-size:14px}
+  #grade-container{left:60px;right:8px}
+
+  #calendario-grade{overflow:auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Painel do Aluno</h1>
+  <div class="header-right">
+    <div id="perfil-click" title="Abrir perfil">
+      <div id="foto-header" aria-hidden="true"></div>
+      <div id="nome-text" aria-hidden="true"></div>
+    </div>
+    <button id="btn-logout">Sair</button>
+  </div>
+</header>
+
+<main>
+  <section id="adicionar-disciplinas" class="card">
+    <h2>Adicionar Disciplinas</h2>
+    <form id="form-adicao">
+      <div class="form-group" style="margin-top:8px">
+        <div class="form-control" style="flex:0 1 150px">
+          <label for="filtro-periodo">Filtrar por Período:</label>
+          <select id="filtro-periodo"><option value="0">Todos os Períodos</option></select>
+        </div>
+
+        <div class="form-control">
+          <label for="disc-id">Disciplina:</label>
+          <select id="disc-id" required><option value="">Selecione a Disciplina</option></select>
+        </div>
+
+        <div class="form-control">
+          <label for="bloco-turma-id">Horário / Turma:</label>
+          <select id="bloco-turma-id" required disabled><option value="">Selecione a Disciplina primeiro</option></select>
+        </div>
+
+        <div class="form-control" style="flex:0 1 140px">
+          <label style="opacity:0">Adicionar</label>
+          <button id="btn-adicionar" class="btn" type="submit">Adicionar à Grade</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="painel-controle" style="margin-top:14px">
+      <button id="btn-exportar" class="btn-acao">📄 Exportar Grade (Imprimir/PDF)</button>
+      <button id="btn-limpar" class="btn-acao">🗑️ Limpar TODAS as Disciplinas</button>
+    </div>
+
+    <p style="margin-top:10px;color:#6c757d">Dica: Use o “×” dentro de cada bloco para removê-lo individualmente.</p>
+  </section>
+
+  <section class="card">
+    <h2>Grade de Horários Atual</h2>
+
+    <div id="legenda-periodos">
+      <div class="legenda-item"><span class="legenda-cor periodo-1"></span> 1º Período</div>
+      <div class="legenda-item"><span class="legenda-cor periodo-2"></span> 2º Período</div>
+      <div class="legenda-item"><span class="legenda-cor periodo-3"></span> 3º Período</div>
+      <div class="legenda-item"><span class="legenda-cor periodo-4"></span> 4º Período</div>
+      <div class="legenda-item"><span class="legenda-cor periodo-5"></span> 5º Período</div>
+    </div>
+
+    <div id="calendario-grade">
+      <div class="calendario-header">
+        <div>Hora</div>
+        <div data-dia="Seg">Segunda</div>
+        <div data-dia="Ter">Terça</div>
+        <div data-dia="Qua">Quarta</div>
+        <div data-dia="Qui">Quinta</div>
+        <div data-dia="Sex">Sexta</div>
+      </div>
+
+      <div class="calendario-body" id="cal-body">
+     
+        <div id="grade-container"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Avisos</h2>
+    <div id="lista-avisos"></div>
+  </section>
+</main>
+
+
+<div id="modal-perfil">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="perfil-nome">
+    <button class="close" id="fechar-perfil" aria-label="Fechar">&times;</button>
+    <div id="foto-perfil" title="Clique para trocar a foto"></div>
+    <input type="file" id="input-foto" accept="image/*">
+    <div style="margin-top:10px;font-weight:700" id="perfil-nome"></div>
+    <div style="color:#666;margin-top:6px" id="perfil-numero"></div>
+    <div style="margin-top:12px">
+      <button id="remover-foto" style="background:#e53e3e;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer">Remover foto</button>
+    </div>
+  </div>
+</div>
+
+<footer>&copy; 2025 — Sistema de Horários</footer>
+
+<script>
+
+const HORA_INICIO_GRADE = 7;
+const ALTURA_HORA_PIXELS = 40;
+const mapDiaColuna = { 'Seg': 2, 'Ter': 3, 'Qua': 4, 'Qui': 5, 'Sex': 6 };
+
+const blocosHorariosBase = [
+  { id: 1, inicio: "08:00", fim: "09:40", label: "Manhã 1 (08:00 - 09:40)" },
+  { id: 2, inicio: "09:50", fim: "11:30", label: "Manhã 2 (09:50 - 11:30)" },
+  { id: 3, inicio: "14:00", fim: "15:40", label: "Tarde 1 (14:00 - 15:40)" },
+  { id: 4, inicio: "15:50", fim: "17:30", label: "Tarde 2 (15:50 - 17:30)" },
+  { id: 5, inicio: "18:30", fim: "20:10", label: "Noite 1 (18:30 - 20:10)" },
+  { id: 6, inicio: "20:20", fim: "22:00", label: "Noite 2 (20:20 - 22:00)" }
+];
+
+const turmasDisponiveis = [
+  { id: 10101, discId: 101, dia: "Seg", blocoHorarioId: 5, sala: "301", prof: "Ana Paula", periodo: 1, turma: "A" },
+  { id: 10201, discId: 102, dia: "Ter", blocoHorarioId: 5, sala: "305", prof: "Bruno Lopes", periodo: 1, turma: "A" },
+  { id: 10301, discId: 103, dia: "Qua", blocoHorarioId: 5, sala: "202", prof: "Carla Souza", periodo: 1, turma: "A" },
+  { id: 10401, discId: 104, dia: "Qui", blocoHorarioId: 6, sala: "205", prof: "Daniel Alves", periodo: 1, turma: "A" },
+  { id: 10501, discId: 105, dia: "Sex", blocoHorarioId: 6, sala: "201", prof: "Eduarda Lima", periodo: 1, turma: "A" },
+
+  { id: 20101, discId: 201, dia: "Seg", blocoHorarioId: 5, sala: "302", prof: "Fernanda Guedes", periodo: 2, turma: "A" },
+  { id: 20102, discId: 201, dia: "Ter", blocoHorarioId: 2, sala: "302", prof: "Fernanda Guedes", periodo: 2, turma: "B" },
+  { id: 20201, discId: 202, dia: "Ter", blocoHorarioId: 5, sala: "306", prof: "Gustavo Rocha", periodo: 2, turma: "A" },
+  { id: 20301, discId: 203, dia: "Qua", blocoHorarioId: 5, sala: "203", prof: "Helena Nunes", periodo: 2, turma: "A" },
+  { id: 20401, discId: 204, dia: "Qui", blocoHorarioId: 6, sala: "206", prof: "Igor Silva", periodo: 2, turma: "A" },
+
+  { id: 30101, discId: 301, dia: "Qua", blocoHorarioId: 5, sala: "401", prof: "Karen Lima", periodo: 3, turma: "A" },
+  { id: 30102, discId: 301, dia: "Seg", blocoHorarioId: 3, sala: "401", prof: "Karen Lima", periodo: 3, turma: "B" },
+  { id: 30201, discId: 302, dia: "Seg", blocoHorarioId: 5, sala: "405", prof: "Lucas Mendes", periodo: 3, turma: "A" },
+  { id: 30301, discId: 303, dia: "Ter", blocoHorarioId: 5, sala: "303", prof: "Mariana Souza", periodo: 3, turma: "A" },
+  { id: 30401, discId: 304, dia: "Qui", blocoHorarioId: 6, sala: "306", prof: "Nelson Costa", periodo: 3, turma: "A" },
+  { id: 30501, discId: 305, dia: "Sex", blocoHorarioId: 6, sala: "301", prof: "Olívia Pires", periodo: 3, turma: "A" },
+
+  { id: 40101, discId: 401, dia: "Seg", blocoHorarioId: 5, sala: "402", prof: "Paulo Viana", periodo: 4, turma: "A" },
+  { id: 40201, discId: 402, dia: "Ter", blocoHorarioId: 5, sala: "406", prof: "Quintino Reis", periodo: 4, turma: "A" },
+
+  { id: 50101, discId: 501, dia: "Seg", blocoHorarioId: 5, sala: "501", prof: "Uriel Borges", periodo: 5, turma: "A" },
+  { id: 50201, discId: 502, dia: "Ter", blocoHorarioId: 5, sala: "505", prof: "Viviane Leal", periodo: 5, turma: "A" }
+];
+
+const disciplinasMestras = [
+  { id: 101, nome: "Introdução à ADS", periodo: 1 },
+  { id: 102, nome: "Prog. Estruturada", periodo: 1 },
+  { id: 103, nome: "Matemática Aplicada", periodo: 1 },
+  { id: 104, nome: "Lógica de Programação", periodo: 1 },
+  { id: 105, nome: "Comunicação e Expressão", periodo: 1 },
+
+  { id: 201, nome: "Estrutura de Dados", periodo: 2 },
+  { id: 202, nome: "Desenvolvimento Web", periodo: 2 },
+  { id: 203, nome: "Banco de Dados I", periodo: 2 },
+  { id: 204, nome: "Sistemas Operacionais", periodo: 2 },
+  { id: 205, nome: "Redes de Computadores", periodo: 2 },
+
+  { id: 301, nome: "Engenharia de Software", periodo: 3 },
+  { id: 302, nome: "Prog. Orientada a Objetos", periodo: 3 },
+  { id: 303, nome: "Estatística", periodo: 3 },
+  { id: 304, nome: "Design de Interação", periodo: 3 },
+  { id: 305, nome: "Segurança da Informação", periodo: 3 },
+
+  { id: 401, nome: "Desenvolvimento Móvel", periodo: 4 },
+  { id: 402, nome: "Cloud Computing", periodo: 4 },
+  { id: 403, nome: "Inteligência Artificial", periodo: 4 },
+  { id: 404, nome: "Gestão de Projetos", periodo: 4 },
+  { id: 405, nome: "Testes e Qualidade", periodo: 4 },
+
+  { id: 501, nome: "Empreendedorismo", periodo: 5 },
+  { id: 502, nome: "TCC I", periodo: 5 },
+  { id: 503, nome: "Computação Gráfica", periodo: 5 },
+  { id: 504, nome: "DevOps", periodo: 5 },
+  { id: 505, nome: "Auditoria de Sistemas", periodo: 5 }
+];
+
+const STORAGE_KEY = 'alocacoesAluno';
+let alocacoesPersonalizadas = [];
+
+
+function horaParaMinutos(h){ const [hh,mm]=h.split(':').map(Number); return hh*60+mm; }
+function calcularPosicaoBloco(inicio,fim){
+  const minutosInicio=horaParaMinutos(inicio), minutosFim=horaParaMinutos(fim);
+  const minutosGradeInicio = HORA_INICIO_GRADE*60;
+  const desloc = minutosInicio - minutosGradeInicio;
+  const duracao = minutosFim - minutosInicio;
+  return { top: (desloc/60)*ALTURA_HORA_PIXELS, height: (duracao/60)*ALTURA_HORA_PIXELS, duracaoMinutos: duracao };
+}
+
+
+const DOM = {};
+function initDOM(){
+  DOM.form = document.getElementById('form-adicao');
+  DOM.filtroPeriodo = document.getElementById('filtro-periodo');
+  DOM.discId = document.getElementById('disc-id');
+  DOM.blocoTurmaId = document.getElementById('bloco-turma-id');
+  DOM.gradeContainer = document.getElementById('grade-container');
+  DOM.btnLimpar = document.getElementById('btn-limpar');
+  DOM.btnExportar = document.getElementById('btn-exportar');
+  DOM.listaAvisos = document.getElementById('lista-avisos');
+
+  DOM.filtroPeriodo && DOM.filtroPeriodo.addEventListener('change', popularDisciplinas);
+  DOM.discId && DOM.discId.addEventListener('change', popularTurmas);
+  DOM.form && DOM.form.addEventListener('submit', handleFormSubmit);
+  DOM.btnLimpar && DOM.btnLimpar.addEventListener('click', limparGradeCompleta);
+  DOM.btnExportar && DOM.btnExportar.addEventListener('click', exportarGrade);
+}
+
+
+function renderizarEstruturaGrade(){
+  const calendarioBody = document.querySelector('.calendario-body');
+  
+  Array.from(calendarioBody.children).forEach(child=>{
+    if (child.id !== 'grade-container') calendarioBody.removeChild(child);
+  });
+  
+  let rowIndex = 1;
+  for(let h = HORA_INICIO_GRADE; h <= 22; h++){
+    const timeStr = `${String(h).padStart(2,'0')}:00`;
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = timeStr;
+    label.style.gridRow = rowIndex;
+    calendarioBody.insertBefore(label, DOM.gradeContainer);
+    if (h < 22){
+      const line = document.createElement('div');
+      line.className = 'grade-line';
+      line.style.gridRow = rowIndex + 1;
+      calendarioBody.insertBefore(line, DOM.gradeContainer);
+    }
+    rowIndex++;
+  }
+}
+
+function renderizarBlocos(){
+  DOM.gradeContainer.innerHTML = '';
+  alocacoesPersonalizadas.forEach(aloc => {
+    const { top, height, duracaoMinutos } = calcularPosicaoBloco(aloc.horaInicio, aloc.horaFim);
+    if (height <= 0) return;
+
+    const bloco = document.createElement('div');
+    bloco.className = `disciplina-bloco periodo-${aloc.periodo}`;
+    bloco.dataset.id = aloc.id;
+    const coluna = mapDiaColuna[aloc.dia];
+    const diaIndex = coluna - 2; // 0..4
+    const leftPercent = diaIndex * (100/5);
+    bloco.style.left = `calc(${leftPercent}% + 6px)`;
+    bloco.style.top = `${top}px`;
+    bloco.style.height = `${Math.max(20, height - 4)}px`;
+    bloco.style.width = `calc(${100/5 - 4}%)`;
+
+    bloco.innerHTML = `
+      <strong>${aloc.nome}</strong>
+      <small class="meta">${aloc.dia} ${aloc.horaInicio} - ${aloc.horaFim} • Sala ${aloc.sala}</small>
+      <button class="remove-btn" title="Remover">×</button>
+    `;
+
+    
+    const btn = bloco.querySelector('.remove-btn');
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if (confirm(`Remover ${aloc.nome} (${aloc.dia} ${aloc.horaInicio}) da grade?`)){
+        excluirAlocacao(aloc.id);
+      }
+    });
+
+    DOM.gradeContainer.appendChild(bloco);
+  });
+}
+
+function renderizarGrade(){
+  renderizarEstruturaGrade();
+  renderizarBlocos();
+}
+
+
+function salvarAlocacoes(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(alocacoesPersonalizadas)); }
+function carregarAlocacoes(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+
+function carregarAlocacoesIniciais(periodo){
+  return turmasDisponiveis.filter(t=>t.periodo===periodo).map(turma=>{
+    const disc = disciplinasMestras.find(d=>d.id===turma.discId);
+    const bloco = blocosHorariosBase.find(b=>b.id===turma.blocoHorarioId);
+    return {
+      id: `padrão-${turma.id}`,
+      turmaId: turma.id,
+      discId: turma.discId,
+      nome: disc?.nome || 'Disciplina',
+      periodo: turma.periodo,
+      prof: turma.prof,
+      sala: turma.sala,
+      dia: turma.dia,
+      horaInicio: bloco.inicio,
+      horaFim: bloco.fim
+    };
+  });
+}
+
+function popularFiltroPeriodo(){
+  const periodos = [...new Set(disciplinasMestras.map(d=>d.periodo))].sort((a,b)=>a-b);
+  const sel = DOM.filtroPeriodo;
+  periodos.forEach(p=>{
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = `${p}º Período`;
+    sel.appendChild(opt);
+  });
+}
+
+function popularDisciplinas(){
+  DOM.discId.innerHTML = '<option value="">Selecione a Disciplina</option>';
+  DOM.blocoTurmaId.innerHTML = '<option value="">Selecione a Disciplina primeiro</option>';
+  DOM.blocoTurmaId.disabled = true;
+
+  const periodoFiltro = Number(DOM.filtroPeriodo.value);
+  let currentPeriodo = 0, optgroup = null;
+  const disciplinasFiltradas = disciplinasMestras.filter(d => periodoFiltro === 0 || d.periodo === periodoFiltro);
+  disciplinasFiltradas.forEach(d=>{
+    if (d.periodo !== currentPeriodo){
+      currentPeriodo = d.periodo;
+      optgroup = document.createElement('optgroup');
+      optgroup.label = `${d.periodo}º Período`;
+      DOM.discId.appendChild(optgroup);
+    }
+    const option = document.createElement('option');
+    option.value = d.id;
+    option.textContent = `${d.nome} (P${d.periodo})`;
+    optgroup.appendChild(option);
+  });
+}
+
+function popularTurmas(){
+  const selectedDiscId = Number(DOM.discId.value);
+  DOM.blocoTurmaId.innerHTML = '<option value="">Selecione o Horário</option>';
+  DOM.blocoTurmaId.disabled = true;
+  if (!selectedDiscId) return;
+
+  const turmas = turmasDisponiveis.filter(t=>t.discId === selectedDiscId);
+  const discNome = (disciplinasMestras.find(d=>d.id===selectedDiscId)||{}).nome || 'Disciplina';
+  if (!turmas.length){
+    DOM.blocoTurmaId.innerHTML = `<option value="">Nenhuma turma encontrada para ${discNome}</option>`;
+    return;
+  }
+  turmas.forEach(t=>{
+    const bloco = blocosHorariosBase.find(b=>b.id === t.blocoHorarioId);
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.dia} - ${bloco.inicio} às ${bloco.fim} (Turma ${t.turma})`;
+    DOM.blocoTurmaId.appendChild(opt);
+  });
+  DOM.blocoTurmaId.disabled = false;
+}
+
+function handleFormSubmit(e){
+  e.preventDefault();
+  const selectedTurmaId = Number(DOM.blocoTurmaId.value);
+  const turmaSelecionada = turmasDisponiveis.find(t=>t.id === selectedTurmaId);
+  if (!turmaSelecionada){ alert('Selecione um horário/turma válido.'); return; }
+
+  const discMestra = disciplinasMestras.find(d=>d.id===turmaSelecionada.discId);
+  const blocoHorario = blocosHorariosBase.find(b=>b.id===turmaSelecionada.blocoHorarioId);
+  const minutosInicioNova = horaParaMinutos(blocoHorario.inicio);
+  const minutosFimNova = horaParaMinutos(blocoHorario.fim);
+  const diaNova = turmaSelecionada.dia;
+
+ 
+  const turmaJaAdicionada = alocacoesPersonalizadas.some(aloc => {
+    const alocTurmaId = (typeof aloc.id === 'string' && String(aloc.id).startsWith('padrão-')) ? Number(String(aloc.id).split('-')[1]) : aloc.turmaId;
+    return alocTurmaId === selectedTurmaId;
+  });
+  if (turmaJaAdicionada){ alert(`Esta turma de ${discMestra.nome} já está na sua grade!`); return; }
+
+  
+  for (const alocExistente of alocacoesPersonalizadas){
+    if (alocExistente.dia === diaNova){
+      const s = horaParaMinutos(alocExistente.horaInicio);
+      const f = horaParaMinutos(alocExistente.horaFim);
+      const overlap = minutosInicioNova < f && s < minutosFimNova;
+      if (overlap){
+        alert(`⛔ Conflito de horário:\n${discMestra.nome} (${diaNova} ${blocoHorario.inicio}-${blocoHorario.fim}) se sobrepõe com ${alocExistente.nome} (${alocExistente.horaInicio}-${alocExistente.horaFim}).`);
+        return;
+      }
+    }
+  }
+
+  const nova = {
+    id: Date.now(),
+    turmaId: turmaSelecionada.id,
+    discId: discMestra.id,
+    nome: discMestra.nome,
+    periodo: turmaSelecionada.periodo,
+    prof: turmaSelecionada.prof, 
+    sala: turmaSelecionada.sala,
+    dia: diaNova,
+    horaInicio: blocoHorario.inicio,
+    horaFim: blocoHorario.fim
+  };
+
+  alocacoesPersonalizadas.push(nova);
+  salvarAlocacoes();
+  renderizarGrade();
+  DOM.form.reset();
+  popularDisciplinas();
+  popularTurmas();
+  alert(`${discMestra.nome} (${diaNova} ${blocoHorario.inicio}) adicionada à sua grade.`);
+}
+
+
+function excluirAlocacao(id){
+  const idNormalized = (typeof id === 'string' && id.startsWith('padrão-')) ? id : Number(id);
+  alocacoesPersonalizadas = alocacoesPersonalizadas.filter(a=>a.id !== idNormalized);
+  salvarAlocacoes();
+  renderizarGrade();
+}
+function limparGradeCompleta(){
+  if (confirm("Deseja remover todas as disciplinas da sua grade?")){
+    alocacoesPersonalizadas = [];
+    salvarAlocacoes();
+    renderizarGrade();
+    alert("Grade limpa.");
+  }
+}
+function exportarGrade(){ window.print(); }
+
+
+const usuarioLogado = sessionStorage.getItem('usuarioLogado');
+if(!usuarioLogado){
+  
+}
+const usuario = usuarioLogado ? JSON.parse(usuarioLogado) : { nome: 'Aluno Exemplo', login: 'aluno' };
+
+function pegarIniciais(nome){
+  const partes = (nome||'').trim().split(/\s+/);
+  return ((partes[0]||'')[0]||'') + ((partes[partes.length-1]||'')[0]||'');
+}
+
+function atualizarAvatar(src, save = false){
+  const header = document.getElementById('foto-header');
+  const modalFoto = document.getElementById('foto-perfil');
+  if (src){
+    header.innerHTML = `<img src="${src}" alt="avatar">`;
+    modalFoto.innerHTML = `<img src="${src}" alt="avatar">`;
+    if (save) localStorage.setItem('avatar_'+usuario.login, src);
+  } else {
+    const iniciais = pegarIniciais(usuario.nome).toUpperCase() || 'AL';
+    header.textContent = iniciais;
+    modalFoto.textContent = iniciais;
+    localStorage.removeItem('avatar_'+usuario.login);
+  }
+}
+
+const avatarSalvo = localStorage.getItem('avatar_'+ (usuario?.login || ''));
+atualizarAvatar(avatarSalvo, false);
+
+document.getElementById('nome-text').textContent = usuario.nome || 'Aluno';
+document.getElementById('perfil-nome').textContent = usuario.nome || '';
+document.getElementById('perfil-numero').textContent = usuario.login || '';
+
+const modal = document.getElementById('modal-perfil');
+document.getElementById('perfil-click').addEventListener('click', ()=> modal.style.display = 'flex');
+document.getElementById('fechar-perfil').addEventListener('click', ()=> modal.style.display = 'none');
+window.addEventListener('click', (ev)=> { if (ev.target === modal) modal.style.display = 'none'; });
+
+
+const inputFoto = document.getElementById('input-foto');
+document.getElementById('foto-perfil').addEventListener('click', ()=> inputFoto.click());
+inputFoto.addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const base64 = ev.target.result;
+    atualizarAvatar(base64, true);
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('remover-foto').addEventListener('click', ()=>{
+  if (confirm('Remover foto e usar iniciais?')){
+    atualizarAvatar(null, true);
+  }
+});
+document.getElementById('btn-logout').addEventListener('click', ()=>{
+  sessionStorage.removeItem('usuarioLogado');
+
+  window.location.href = 'login.html';
+});
+
+
+function carregarAvisos(){
+  const avisos = JSON.parse(localStorage.getItem('avisos') || '[]');
+  const lista = document.getElementById('lista-avisos');
+  if (!avisos.length){ lista.innerHTML = '<p style="color:gray;font-style:italic">Nenhum aviso disponível.</p>'; return; }
+  lista.innerHTML = avisos.slice().reverse().map(a => `<div class="aviso-item"><strong>${a.autor}</strong>: ${a.texto}<br><small>${a.data}</small></div>`).join('');
+}
+
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  initDOM();
+  popularFiltroPeriodo();
+  popularDisciplinas();
+
+  renderizarEstruturaGrade();
+
+  const salvas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if (!salvas || salvas.length === 0){
+    alocacoesPersonalizadas = (function(){ return turmasDisponiveis.filter(t=>t.periodo===1).map(turma=>{
+      const disc = disciplinasMestras.find(d=>d.id===turma.discId);
+      const bloco = blocosHorariosBase.find(b=>b.id===turma.blocoHorarioId);
+      return {
+        id: `padrão-${turma.id}`,
+        turmaId: turma.id,
+        discId: turma.discId,
+        nome: disc?.nome || 'Disciplina',
+        periodo: turma.periodo,
+        prof: turma.prof,
+        sala: turma.sala,
+        dia: turma.dia,
+        horaInicio: bloco.inicio,
+        horaFim: bloco.fim
+      };
+    }); })();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(alocacoesPersonalizadas));
+  } else {
+    alocacoesPersonalizadas = salvas;
+  }
+
+  renderizarGrade();
+  carregarAvisos();
+});
+</script>
+</body>
+</html>

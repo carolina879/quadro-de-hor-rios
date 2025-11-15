@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Sistema ADS</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(to right, #1A237E, #3949AB);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .login-box {
+    background: #fff;
+    color: #333;
+    padding: 40px 30px 30px;
+    border-radius: 20px;
+    width: 360px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    text-align: center;
+    position: relative;
+  }
+
+  .avatar {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+
+  .avatar .head {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(145deg, #ffdc9b, #f4c07a);
+    border-radius: 50%;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+
+  .avatar .hat {
+    width: 100px;
+    height: 45px;
+    background: linear-gradient(145deg, #2a2a72, #009ffd);
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-1deg);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+  }
+
+  .avatar .hat::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: gold;
+    border-radius: 50%;
+    top: 38px;
+    left: 60%;
+  }
+
+  .avatar .eyes {
+    position: absolute;
+    top: 43%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 24px;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+  }
+
+  .eye {
+    width: 12px;
+    height: 12px;
+    background: #333;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+ 
+  .hands {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+
+  .hand {
+    width: 40px;
+    height: 22px;
+    background: linear-gradient(145deg, #f4c07a, #eab671);
+    border-radius: 12px;
+    position: absolute;
+    top: 10px;
+    transition: all 0.4s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+
+  .hand.left { left: -45px; transform: rotate(-20deg); }
+  .hand.right { right: -45px; transform: rotate(20deg); }
+
+  .avatar.cover .hand.left {
+    top: -5px;
+    left: -25px;
+    transform: rotate(60deg);
+  }
+
+  .avatar.cover .hand.right {
+    top: -5px;
+    right: -25px;
+    transform: rotate(-60deg);
+  }
+
+  .avatar.cover .eyes {
+    opacity: 0;
+  }
+
+  
+  h2 {
+    color: #1A237E;
+    margin-bottom: 20px;
+    margin-top: 10px;
+  }
+
+  input, select, button {
+    width: 100%;
+    margin: 8px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  button {
+    background: linear-gradient(to right, #1A237E, #3949AB);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: linear-gradient(to right, #3949AB, #1A237E);
+    transform: scale(1.02);
+  }
+
+  .feedback {
+    margin-top: 10px;
+    font-size: 14px;
+    display: none;
+  }
+
+  .error { color: #e53935; }
+  .success { color: #2e7d32; }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="avatar" id="avatar">
+    <div class="hat"></div>
+    <div class="head"></div>
+    <div class="eyes">
+      <div class="eye"></div>
+      <div class="eye"></div>
+    </div>
+    <div class="hands">
+      <div class="hand left"></div>
+      <div class="hand right"></div>
+    </div>
+  </div>
+
+  <h2>Login</h2>
+  <select id="tipo">
+    <option value="aluno">Aluno</option>
+    <option value="professor">Professor</option>
+    <option value="coordenador">Coordenador</option>
+  </select>
+  <input type="text" id="login" placeholder="Usuário" required>
+  <input type="password" id="senha" placeholder="Senha" required>
+  <button onclick="fazerLogin()">Entrar</button>
+  <p id="feedback" class="feedback"></p>
+</div>
+
+<script>
+const senhaInput = document.getElementById('senha');
+const avatar = document.getElementById('avatar');
+
+senhaInput.addEventListener('focus', () => avatar.classList.add('cover'));
+senhaInput.addEventListener('blur', () => avatar.classList.remove('cover'));
+
+function fazerLogin() {
+  const tipo = document.getElementById('tipo').value;
+  const login = document.getElementById('login').value.trim();
+  const senha = document.getElementById('senha').value.trim();
+  const feedback = document.getElementById('feedback');
+  feedback.style.display = 'none';
+
+  if (!login || !senha) {
+    feedback.textContent = 'Preencha todos os campos.';
+    feedback.className = 'feedback error';
+    feedback.style.display = 'block';
+    return;
+  }
+
+  let user = null;
+  if (tipo === 'coordenador') {
+    if (login === 'coordenador' && senha === '123') {
+      user = { nome: 'Coordenador', tipo: 'coordenador', login: login };
+    }
+  } else if (tipo === 'professor') {
+    const professores = JSON.parse(localStorage.getItem('professores')) || [];
+    user = professores.find(p => p.login === login && p.senha === senha);
+  } else if (tipo === 'aluno') {
+    const alunos = JSON.parse(localStorage.getItem('alunos')) || [];
+    user = alunos.find(a => a.login === login && a.senha === senha);
+  }
+
+  if (user) {
+    feedback.className = 'feedback success';
+    feedback.textContent = `✅ Bem-vindo, ${user.nome}! Redirecionando...`;
+    feedback.style.display = 'block';
+
+    sessionStorage.setItem('usuarioLogado', JSON.stringify({
+      tipo: tipo,
+      nome: user.nome,
+      login: user.login
+    }));
+
+    setTimeout(() => {
+      if (tipo === 'aluno') window.location.href = 'aluno.html';
+      else if (tipo === 'professor') window.location.href = 'professor.html';
+      else window.location.href = 'coordenador.html';
+    }, 1000);
+  } else {
+    feedback.className = 'feedback error';
+    feedback.textContent = '❌ Usuário ou senha incorretos.';
+    feedback.style.display = 'block';
+  }
+}
+</script>
+
+</body>
+</html>

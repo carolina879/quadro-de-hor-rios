@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard do Coordenador</title>
+<style>
+body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f4f4f9; margin:0; padding:0; }
+header { background:#495057; color:white; padding:20px; text-align:center; }
+header h1 { margin:0; }
+main { max-width:1400px; margin:20px auto; padding:0 20px; }
+section { background:white; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); margin-bottom:20px; }
+h2 { color:#495057; border-bottom:2px solid #e9ecef; padding-bottom:8px; }
+table { width:100%; border-collapse: collapse; margin-top:10px; }
+th, td { border:1px solid #ddd; padding:8px; text-align:left; }
+th { background:#e9ecef; }
+input, select, textarea, button { padding:8px; margin:5px 0; border-radius:6px; border:1px solid #ccc; }
+button { cursor:pointer; transition:0.2s; font-weight:bold; }
+button:hover { opacity:0.9; }
+.btn-excluir { background:#dc3545; color:white; }
+.btn-editar { background:#ffc107; color:white; }
+.filtros { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; }
+.btn-filtro { padding:10px 18px; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.95em; }
+.ativo { box-shadow:0 0 0 3px rgba(0,0,0,0.2) inset; }
+.periodo-1 { background:#38a169; } 
+.periodo-2 { background:#d69e2e; } 
+.periodo-3 { background:#4299e1; } 
+.periodo-4 { background:#805ad5; } 
+.periodo-5 { background:#e53e3e; } 
+.btn-todos { background:#495057; }
+#grade-container { position:relative; min-height:200px; margin-top:10px; border:1px solid #ddd; border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.disciplina-bloco { padding:10px; color:white; border-radius:6px; font-size:0.9em; }
+#lista-avisos { margin-top:12px; }
+</style>
+</head>
+<body>
+<header><h1>Dashboard do Coordenador</h1></header>
+<main>
+
+
+<section>
+    <h2>Professores Cadastrados (<span id="numero-professores">0</span>)</h2>
+    <input type="text" id="pesquisa-professor" placeholder="Pesquisar professor...">
+    <form id="form-professor">
+        <input type="text" id="nome-professor" placeholder="Nome do Professor" required>
+        <input type="text" id="login-professor" placeholder="Login" required>
+        <input type="text" id="senha-professor" placeholder="Senha" required>
+        <button type="submit" style="background:#90C3FF; color:white;">Adicionar Professor</button>
+    </form>
+    <table id="tabela-professores">
+        <thead><tr><th>Nome</th><th>Login</th><th>Senha</th><th>Ação</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+
+<section>
+    <h2>Alunos Cadastrados (<span id="numero-alunos">0</span>)</h2>
+    <input type="text" id="pesquisa-aluno" placeholder="Pesquisar aluno...">
+    <form id="form-aluno">
+        <input type="text" id="nome-aluno" placeholder="Nome do Aluno" required>
+        <input type="text" id="login-aluno" placeholder="Login" required>
+        <input type="text" id="senha-aluno" placeholder="Senha" required>
+        <button type="submit" style="background:#38a169; color:white;">Adicionar Aluno</button>
+    </form>
+    <table id="tabela-alunos">
+        <thead><tr><th>Nome</th><th>Login</th><th>Senha</th><th>Ação</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+
+<section>
+    <h2>Alocar Professores nas Disciplinas</h2>
+    <form id="form-alocacao">
+        <select id="select-disciplina" required></select>
+        <select id="select-professor" required></select>
+        <button type="submit" style="background:#4299e1; color:white;">Alocar</button>
+    </form>
+    <table id="tabela-alocacoes">
+        <thead><tr><th>Disciplina</th><th>Professores</th><th>Ação</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+<section>
+    <h2>Grade de Disciplinas</h2>
+    <div class="filtros">
+        <button class="btn-filtro btn-todos ativo" data-periodo="todos">Todos</button>
+        <button class="btn-filtro periodo-1" data-periodo="1">1º Período</button>
+        <button class="btn-filtro periodo-2" data-periodo="2">2º Período</button>
+        <button class="btn-filtro periodo-3" data-periodo="3">3º Período</button>
+        <button class="btn-filtro periodo-4" data-periodo="4">4º Período</button>
+        <button class="btn-filtro periodo-5" data-periodo="5">5º Período</button>
+    </div>
+    <div id="grade-container"></div>
+</section>
+
+
+<section>
+    <h2>Avisos</h2>
+    <form id="form-aviso">
+        <textarea id="texto-aviso" placeholder="Escreva um aviso..." required style="width:100%;height:60px;padding:8px;border-radius:6px;border:1px solid #ccc;"></textarea>
+        <button type="submit" style="background:#38a169;color:white;margin-top:6px;">Adicionar Aviso</button>
+    </form>
+    <div id="lista-avisos"></div>
+</section>
+
+</main>
+
+<script>
+
+let professores = JSON.parse(localStorage.getItem('professores')) || [];
+let alunos = JSON.parse(localStorage.getItem('alunos')) || [];
+let alocacoes = JSON.parse(localStorage.getItem('alocacoes')) || [];
+let periodoAtual = 'todos';
+
+const disciplinasMestras = [
+    {nome:"Introdução à ADS",periodo:1},{nome:"Lógica de Programação",periodo:1},{nome:"Fundamentos de Computação",periodo:1},{nome:"Matemática Aplicada",periodo:1},{nome:"Comunicação e Expressão",periodo:1},
+    {nome:"Programação Estruturada",periodo:2},{nome:"Banco de Dados I",periodo:2},{nome:"Engenharia de Software I",periodo:2},{nome:"Sistemas Operacionais",periodo:2},{nome:"Arquitetura de Computadores",periodo:2},
+    {nome:"Programação Orientada a Objetos",periodo:3},{nome:"Banco de Dados II",periodo:3},{nome:"Estrutura de Dados",periodo:3},{nome:"Engenharia de Software II",periodo:3},{nome:"Redes de Computadores",periodo:3},
+    {nome:"Desenvolvimento Web",periodo:4},{nome:"Programação Mobile",periodo:4},{nome:"Cloud Computing",periodo:4},{nome:"Segurança da Informação",periodo:4},{nome:"Gestão de Projetos",periodo:4},
+    {nome:"Inteligência Artificial",periodo:5},{nome:"Empreendedorismo",periodo:5},{nome:"Tópicos Avançados",periodo:5},{nome:"Trabalho de Conclusão de Curso I",periodo:5},{nome:"Ética e Cidadania Profissional",periodo:5},
+];
+
+function salvarLocal(chave, dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
+
+
+function renderizarProfessores(filtro=''){
+    const tbody = document.querySelector('#tabela-professores tbody');
+    tbody.innerHTML = '';
+    professores.filter(p => p.nome.toLowerCase().includes(filtro.toLowerCase()) || p.login.toLowerCase().includes(filtro.toLowerCase()))
+    .forEach((p,i)=>{
+        tbody.innerHTML += `<tr>
+            <td>${p.nome}</td>
+            <td>${p.login}</td>
+            <td>${p.senha}</td>
+            <td>
+                <button class="btn-editar" onclick="editarProfessor(${i})">Editar</button>
+                <button class="btn-excluir" onclick="excluirProfessor(${i})">Excluir</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('numero-professores').textContent = professores.length;
+}
+function excluirProfessor(i){
+    if(confirm("Excluir professor?")){
+        const nomeProfessor = professores[i].nome;
+        professores.splice(i,1);
+        salvarLocal('professores', professores);
+ 
+        alocacoes.forEach(a => { 
+            if(a.professores) {
+                a.professores = a.professores.filter(p => p !== nomeProfessor);
+            }
+        });
+        salvarLocal('alocacoes', alocacoes);
+        renderizarProfessores();
+        renderizarAlocacoes();
+        renderizarGrade(periodoAtual);
+        popularSelects();
+    }
+}
+function editarProfessor(i){
+    const p = professores[i];
+    document.getElementById('nome-professor').value = p.nome;
+    document.getElementById('login-professor').value = p.login;
+    document.getElementById('senha-professor').value = p.senha;
+    professores.splice(i,1);
+    salvarLocal('professores', professores);
+    renderizarProfessores();
+    popularSelects();
+}
+
+
+function renderizarAlunos(filtro=''){
+    const tbody = document.querySelector('#tabela-alunos tbody');
+    tbody.innerHTML = '';
+    alunos.filter(a => a.nome.toLowerCase().includes(filtro.toLowerCase()) || a.login.toLowerCase().includes(filtro.toLowerCase()))
+    .forEach((a,i)=>{
+        tbody.innerHTML += `<tr>
+            <td>${a.nome}</td>
+            <td>${a.login}</td>
+            <td>${a.senha}</td>
+            <td>
+                <button class="btn-editar" onclick="editarAluno(${i})">Editar</button>
+                <button class="btn-excluir" onclick="excluirAluno(${i})">Excluir</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('numero-alunos').textContent = alunos.length;
+}
+function excluirAluno(i){
+    if(confirm("Excluir aluno?")){
+        alunos.splice(i,1);
+        salvarLocal('alunos', alunos);
+        renderizarAlunos();
+    }
+}
+function editarAluno(i){
+    const a = alunos[i];
+    document.getElementById('nome-aluno').value = a.nome;
+    document.getElementById('login-aluno').value = a.login;
+    document.getElementById('senha-aluno').value = a.senha;
+    alunos.splice(i,1);
+    salvarLocal('alunos', alunos);
+    renderizarAlunos();
+}
+
+
+function popularSelects(){
+    const selDisc = document.getElementById('select-disciplina');
+    selDisc.innerHTML = '';
+    disciplinasMestras.forEach(d=>{
+        selDisc.innerHTML += `<option value="${d.nome}">${d.nome} (P${d.periodo})</option>`;
+    });
+    const selProf = document.getElementById('select-professor');
+    selProf.innerHTML = '';
+    professores.forEach(p=>{
+        selProf.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+    });
+}
+function renderizarAlocacoes(){
+    const tbody = document.querySelector('#tabela-alocacoes tbody');
+    tbody.innerHTML = '';
+    alocacoes.forEach((a,i)=>{
+        const profs = a.professores?.join(', ') || '<span style="color:#e53e3e;font-weight:bold;">Não alocado</span>';
+        tbody.innerHTML += `<tr>
+            <td>${a.disciplina}</td>
+            <td>${profs}</td>
+            <td><button class="btn-excluir" onclick="removerAlocacao(${i})">Remover</button></td>
+        </tr>`;
+    });
+}
+function removerAlocacao(index){
+    if(confirm("Deseja remover esta alocação?")){
+        alocacoes.splice(index,1);
+        salvarLocal('alocacoes', alocacoes);
+        renderizarAlocacoes();
+        renderizarGrade(periodoAtual);
+    }
+}
+function renderizarGrade(periodo='todos'){
+    const container = document.getElementById('grade-container');
+    container.innerHTML = '';
+    const disciplinasFiltradas = periodo==='todos' ? disciplinasMestras : disciplinasMestras.filter(d=>d.periodo == periodo);
+    disciplinasFiltradas.forEach(d=>{
+        const aloc = alocacoes.find(a => a.disciplina === d.nome);
+        const div = document.createElement('div');
+        div.className = `disciplina-bloco periodo-${d.periodo}`;
+        if(aloc && aloc.professores && aloc.professores.length){
+            div.textContent = `${d.nome} - Prof: ${aloc.professores.join(', ')}`;
+            div.style.opacity = '1';
+        } else {
+            div.textContent = `${d.nome} - Sem Professor`;
+            div.style.background = '#e53e3e';
+            div.style.opacity = '0.8';
+        }
+        container.appendChild(div);
+    });
+}
+
+
+document.getElementById('form-professor').addEventListener('submit', e=>{
+    e.preventDefault();
+    const nome = document.getElementById('nome-professor').value.trim();
+    const login = document.getElementById('login-professor').value.trim();
+    const senha = document.getElementById('senha-professor').value.trim();
+    if(professores.some(p=>p.login === login)){
+        alert("Login de professor já existe!");
+        return;
+    }
+    professores.push({nome,login,senha});
+    salvarLocal('professores', professores);
+    renderizarProfessores();
+    popularSelects();
+    e.target.reset();
+});
+document.getElementById('form-aluno').addEventListener('submit', e=>{
+    e.preventDefault();
+    const nome = document.getElementById('nome-aluno').value.trim();
+    const login = document.getElementById('login-aluno').value.trim();
+    const senha = document.getElementById('senha-aluno').value.trim();
+    if(alunos.some(a=>a.login === login)){
+        alert("Login de aluno já existe!");
+        return;
+    }
+    alunos.push({nome,login,senha});
+    salvarLocal('alunos', alunos);
+    renderizarAlunos();
+    e.target.reset();
+});
+
+
+document.getElementById('form-alocacao').addEventListener('submit', e=>{
+    e.preventDefault();
+    const disciplina = document.getElementById('select-disciplina').value;
+    const professorSelecionado = document.getElementById('select-professor').value;
+    const existe = alocacoes.find(a => a.disciplina === disciplina);
+
+    if(existe){
+        if(!existe.professores) existe.professores = [];
+        if(!existe.professores.includes(professorSelecionado)){
+            existe.professores.push(professorSelecionado);
+        }
+    } else {
+        alocacoes.push({disciplina, professores:[professorSelecionado]});
+    }
+
+    salvarLocal('alocacoes', alocacoes);
+    renderizarAlocacoes();
+    renderizarGrade(periodoAtual);
+});
+
+document.querySelectorAll('.btn-filtro').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.btn-filtro').forEach(b=>b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        periodoAtual = btn.dataset.periodo;
+        renderizarGrade(periodoAtual);
+    });
+});
+document.getElementById('pesquisa-professor').addEventListener('input', e=>renderizarProfessores(e.target.value));
+document.getElementById('pesquisa-aluno').addEventListener('input', e=>renderizarAlunos(e.target.value));
+
+
+function salvarAvisos(avisos){ 
+    localStorage.setItem('avisos', JSON.stringify(avisos)); 
+    window.dispatchEvent(new Event('avisosAtualizados'));
+}
+function carregarAvisos(){ return JSON.parse(localStorage.getItem('avisos') || '[]'); }
+function renderizarAvisos(){
+    const lista = document.getElementById('lista-avisos');
+    const avisos = carregarAvisos();
+    if(avisos.length === 0){
+        lista.innerHTML = '<p style="color:#777;font-style:italic;">Nenhum aviso no momento.</p>';
+        return;
+    }
+    lista.innerHTML = avisos.map(a => `
+        <div style="background:#fff;padding:10px;border-radius:6px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>${a.autor}</strong>
+                <button style="background:#dc3545;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;" onclick="excluirAviso(${a.id})">Excluir</button>
+            </div>
+            <p style="margin:6px 0 0 0;">${a.texto}</p>
+            <small style="color:#666;">${new Date(a.data).toLocaleString()}</small>
+        </div>
+    `).join('');
+}
+function adicionarAviso(texto){
+    const avisos = carregarAvisos();
+    const novo = { id: Date.now(), autor: 'Coordenador', texto: texto, data: new Date().toISOString() };
+    avisos.push(novo);
+    salvarAvisos(avisos);
+    renderizarAvisos();
+}
+function excluirAviso(id){
+    let avisos = carregarAvisos();
+    avisos = avisos.filter(a => a.id !== id);
+    salvarAvisos(avisos);
+    renderizarAvisos();
+}
+document.getElementById('form-aviso').addEventListener('submit', e=>{
+    e.preventDefault();
+    const texto = document.getElementById('texto-aviso').value.trim();
+    if(texto){
+        adicionarAviso(texto);
+        e.target.reset();
+    }
+});
+window.addEventListener('avisosAtualizados', renderizarAvisos);
+
+
+renderizarProfessores();
+renderizarAlunos();
+renderizarAlocacoes();
+popularSelects();
+renderizarGrade();
+renderizarAvisos();
+
+</script>
+</body>
+</html>
